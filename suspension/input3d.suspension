@@ -29,7 +29,7 @@ NY         = 8                          // number of grid cells (y axis)
 NZ         = 8                          // number of grid cells (z axis)
 PERIODIC_X = 1
 PERIODIC_Y = 1
-PERIODIC_Z = 0
+PERIODIC_Z = 1
 
 // ---------------------------------------------------------------------------
 
@@ -48,7 +48,7 @@ CONVECTIVE_TS_TYPE  = "TRAPEZOIDAL_RULE" // convective time stepping rule (if NU
 CONVECTIVE_OP_TYPE  = "CENTERED"         // convective differencing discretization type
 CONVECTIVE_FORM     = "CONSERVATIVE"     // how to compute the convective terms
 NORMALIZE_PRESSURE  = TRUE               // whether to explicitly force the pressure to have mean zero
-NORMALIZE_VELOCITY  = FALSE               // Enforce <u> = 0
+NORMALIZE_VELOCITY  = TRUE               // Enforce <u> = 0
 CFL_MAX             = 100.5              // maximum CFL number
 ERROR_ON_DT_CHANGE  = TRUE               // whether to emit an error message if the time step size changes
 VORTICITY_TAGGING   = FALSE              // whether to tag cells for refinement based on vorticity thresholds
