@@ -1,0 +1,172 @@
+This file lists the options used by the objects of the FIB code.
+These options are specified in input files, as done in the included
+examples.
+
+
+########################################################
+# IBBrownianBlobHierarchyIntegrator Options and Flags
+########################################################
+
+This is a list of the custom options and flags used specifically by the
+IBBrownianBlobHierarchyIntegrator.  These are specified in the
+IBHierarchyIntegrator section of the input file.
+
+time_stepping_type - This should be one of "MIDPOINT_RULE",
+"TRAPEZOIDAL_RULE", "FORWARD_EULER", "SECOND_TRAPEZOIDAL_RULE", or
+"SECOND_MIDPOINT_RULE".
+(NOTE: The FORWARD_EULER scheme is inconsistent and is used for
+testing and comparison only.)
+
+diagnostic_interval - Indicates how often to print out diagnostics:
+total fluid momentum and total force.  This is printed every
+<diagnostic_interval> timesteps.  0 indicates that diagnostics
+should not be printed.
+
+physical_rho - Density used only for momentum calculations in
+diagnostics when printed (see above).  Not used in
+the fluid solver.
+
+normalize_force - int - when positive, enforce sum(f) = 0 over the domain by
+normalizing (subtracting average).  Must be positive for fully periodic
+domains, and 0 for domains 
+
+regrid_alpha - double - How often to regrid based on how far particles
+move.  The code will regrid every time any particle moves more than
+regrid_alpha*dx in any direction (since the last regrid).  Note that
+regridding is only done at the beginning of a timestep, so particles
+can overshoot this bound in a step, and regridding will be done next
+timestep.  The code will throw an error if a particle has ever moved
+more than 2*regrid_alpha*dx in any direction since the last regrid.
+
+use_rfd - int - When nonzero, an RFD term will be used to
+generate the correct stochastic drift.  Defaults to 1 (true).
+WARNING: Setting this option to 0 (false) will result in an inconsistent integrator.
+
+############################
+#   Nonbonded Forces
+############################
+
+Nonbonded forces (forces that apply between all pairs of particles
+within a given distance from each other) are implemented with a
+NonbondedForceEvaluator object.  These objects are subclasses of
+IBLagrangianForceStrategy from IBAMR.  Because of this, they can be
+registered with an IBHierarchyIntegrator as is done in main.C:
+
+    // create nonbonded force evaluator
+    Pointer<NonbondedForceEvaluator> ib_nonbonded_force_fcn = 
+        new NonbondedForceEvaluator(input_db->getDatabase("NonbondedForceEvaluator"),
+	                             grid_geometry);
+    // register force function for nonbonded forces
+    ib_nonbonded_force_fcn->registerForceFcnPtr(&TruncLJ_nonbdd_force);
+
+The force that is applied between particles is determined by the Force
+Function passed to registerForceFcnPtr.  This function takes a vector
+between the two particles, D, and calculates a force to
+apply. An example is given here for a simple linear spring. 
+A positive value of out_force represents repulsion.
+	
+inline void
+example_nonbdd_force(
+    double* D,
+    const SAMRAI::tbox::Array<double> parameters,
+    double* out_force)
+{
+    // Functions can take parameters, such as spring constant, passed
+    // in from the input db (see below).
+    double spring_constant = parameters[0];
+    double rest_length = parameters[1];
+
+    // Distance between particles.
+    double distance = 0.0;
+    // Test nonbonded forces
+    for (int k = 0; k < NDIM; ++k)
+    {
+	distance += D[k]*D[k];
+    };
+    distance = sqrt(distance);
+
+    double force_over_distance = -1.0*spring_constant*(distance - rest_length)/distance;
+    for (int k = 0; k< NDIM; ++k) {
+        out_force[k] = D[k]*force_over_distance;
+    }  
+}
+
+The constructor takes the grid geometry, and an input database, an
+example of which follows:
+
+NonbondedForceEvaluator {
+  regrid_alpha =  REGRID_ALPHA
+  interaction_radius = 4.0
+  parameters = 2.0, 0.001 
+}
+
+The values in this input db are as follows:
+
+    regrid_alpha - double - How far (in units of dx) particles are
+        allowed to move before regrid.  This should be the same as the
+        regrid alpha used in the integrator and walls, etc (see
+        above).  This is used to know how many cells to search in
+        order to guarantee all potentially affected particles are
+        found.
+	
+    interaction_radius - double - The maximum length of the force interaction.
+    The NonbondedForceEvaluator is not guaranteed to apply forces to
+    any pairs separated by more than this distance (however, in the
+    current implementation, it *could* do this, it is just not
+    required to.)
+
+    parameters - double[] - An array of values passed to the force function.
+        These can be any double, for example spring constant and rest
+        length as shown above.
+
+
+#########################
+#    Wall Forces
+#########################
+
+Walls are objects that repel particles from a specified plane (aligned
+with the grid) in a specified direction.  These do *not* need to
+coincide with actual boundaries of the fluid solver.
+
+In the input file, a "WallForceEvaluator" block should be
+specified that contains the following:
+
+    wall_number - int - Number of walls to use.  
+
+    regrid_alpha - double - See IBBrownianBlobIntegrator Options and
+         Flags section, this should match the regrid_alpha from there.
+         This is used to keep track of all particles which may be
+         affected by the wall before the next regrid.
+	
+The WallForceEvaluator block should then have <wall_number>
+subsblocks titled "Wall_<n>" for n = 0 to <wall_number> - 1.  
+These subblocks specify the location and properties of the walls, 
+and have the following entries:
+
+     dim - int - Between 0 and NDIM - 1 inclusive. This specifies the
+     	   normal direction to the wall, 0 is the first (x) component,
+     	   1 is the second (y), etc.
+	      
+    location - int - Location in cells of the wall.  The convention
+           is that the cell specified is the first one affected by
+           the wall. e.g. if location is 1, and side = 1, the wall
+           will be at location h = cell width.
+
+    side - int - Which direction the wall "faces".  If int = 0, the
+           wall applies forces to particles that have position with
+           coordinate <dim> less than the location of the wall.  If
+           int = 1, it applies to particles with position greater
+           than the location of the wall.
+
+    force_distance - double - The range of the affect of the
+           wall. All particles with coordinate <dim> between
+           (location + (1 - side))*dx 
+           and 
+           (location + (1 - side))*dx + (2*side - 1)*force_distance
+           will be affected.
+
+    parameters - double[] - Parameters used for calculation of the
+           force exerted by the wall.  The force is calculated by a
+           WallForceFcnPtr which takes "params" as an argument, an
+           array of doubles, which will be assigned these values.
+   
