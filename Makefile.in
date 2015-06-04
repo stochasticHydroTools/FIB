@@ -1,11 +1,11 @@
 ######################################################################
 ## Here specify the location of the IBAMR source, the FIB source, and the location
 ## where IBAMR has been built.
-FIB_SRC_DIR = $(HOME)/FluctHydro/FIB
-IBAMR_SRC_DIR = $(HOME)/FluctHydro/git_ibamr
-
-# This should be the directory with the IBAMR object files.
-IBAMR_BUILD_DIR = /fluct/delong/ibamr-opt
+FIB_SRC_DIR = src
+# Location of IBAMR src code.
+IBAMR_SRC_DIR = ???
+# Location of IBAMR build location.
+IBAMR_BUILD_DIR = ???
 
 
 ######################################################################

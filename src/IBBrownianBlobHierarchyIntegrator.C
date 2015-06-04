@@ -434,11 +434,8 @@ IBBrownianBlobHierarchyIntegrator::integrateHierarchy(
             }
 
             // ADD LAGRANGIAN FORCES HERE
-
-            // First zero d_F_data so we can add deterministic forces and spread.
-            ierr = VecZeroEntries(d_F_data->getVec());  IBTK_CHKERRQ(ierr);
             if(d_point_force_flag)
-            { // if we have pointforces, then apply them
+            { // if we have point forces, then apply them.
                 addPointForces(d_F_data, d_X_current_data, current_time);
             }
             // add spring forces. Note, these forces MUST NOT change the total force
@@ -455,7 +452,6 @@ IBBrownianBlobHierarchyIntegrator::integrateHierarchy(
             d_F_data->beginGhostUpdate();
             d_F_data->endGhostUpdate();
             spreadForce(d_f_idx, d_F_data, d_X_current_data, current_time);
-	    ///spreadForce(d_f_big_gc_idx, d_F_data, d_X_current_data, current_time);
 
             // NOTE: Any additional Eulerian forcing should be computed here and added
             // to the data associated with d_f_idx.
