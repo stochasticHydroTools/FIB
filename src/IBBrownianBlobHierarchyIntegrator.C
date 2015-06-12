@@ -135,20 +135,6 @@ IBBrownianBlobHierarchyIntegrator::IBBrownianBlobHierarchyIntegrator(
     {
         TBOX_ERROR("Must indicate if we should normalize forces or not with normalize_force (1 means normalize)");
     }
-    
-    // if we're doing a mobilty estimate, open the output file
-    if (d_time_stepping_type == "MOBILITY_ESTIMATE")
-    {
-        mob_comp = 0;
-        if (input_db->keyExists("mobility_out_file"))
-        {
-            out_mob_file.open((char *) input_db->getString("mobility_out_file").c_str(),std::ofstream::out);
-        }
-        else
-        {
-            TBOX_ERROR("MOBILITY_ESTIMATE selected, but no MOBILITY_OUT_FILE specified.");
-        }
-    }
 
     // set lagrangian force functions for pointforces, nonbonded forces,
     // and background flow.
@@ -188,14 +174,10 @@ IBBrownianBlobHierarchyIntegrator::IBBrownianBlobHierarchyIntegrator(
 
 IBBrownianBlobHierarchyIntegrator::~IBBrownianBlobHierarchyIntegrator()
 {
-    // close output file for estimated mobility
-    if(d_time_stepping_type == "MOBILITY_ESTIMATE")
-    {
-        out_mob_file.close();
-    }
-
+    // Intentionally blank.
     return;
 }// ~IBBrownianBlobHierarchyIntegrator
+
  void
 IBBrownianBlobHierarchyIntegrator::genrandn(
     Pointer<LData> Noise_data)
@@ -960,110 +942,6 @@ IBBrownianBlobHierarchyIntegrator::integrateHierarchy(
                 IBTK_CHKERRQ(ierr);
             }
         } // end if d_time_stepping_type == SECOND_TRAPEZOIDAL_RULE, SECOND_MIDPOINT_RULE
-        // else if (d_time_stepping_type == "MOBILITY_ESTIMATE")
-        // {
-        //     // mobility data for mobility_estimate.  Why times two?
-        //     double mobility[NDIM*NDIM];
-        //     // no timestepping, just computing the mobility
-        //     int ins_cycle_num = 0;
-        //     for (int k = 0; k < NDIM*NDIM; ++k)
-        //     {
-        //         mobility[k] = 0.0;
-        //     }
-        //     d_X_current_data->beginGhostUpdate();
-        //     d_X_current_data->endGhostUpdate();            
-            
-        //     // don't actually move the particle, just compute mobility
-        //     // from an applied force in each direction.
-        //     // Zero variables that we will add .
-        //     ierr = VecZeroEntries(d_F_data->getVec());  IBTK_CHKERRQ(ierr);
-        //     ierr = VecZeroEntries(d_U_data->getVec());  IBTK_CHKERRQ(ierr);
-        //     d_hier_velocity_data_ops->setToScalar(d_f_idx,0.0);
-        //     d_hier_velocity_data_ops->setToScalar(d_u_idx,0.0);
-            
-        //     // apply single force for mobility calc
-        //     PetscScalar *force; // TODO(steven): move to beginning
-        //     VecGetArray(d_F_data->getVec(),&force);
-        //     // iterate through local nodes to add point forces to particles
-        //     // using finest level number, because we assume IB data are
-        //     // defined on this level.
-        //     // Apply forces on all particles at mob_comp (which changes
-        //     // from "time step" to "time step").
-        //     // TODO: Get multiple particle full mobility.
-        //     const Pointer<LMesh> mesh = l_data_manager->getLMesh(finest_level_num);
-        //     const std::vector<LNode*>& local_nodes = mesh->getLocalNodes();
-        //     for (std::vector<LNode*>::const_iterator cit = local_nodes.begin();
-        //          cit != local_nodes.end();
-        //          ++cit)
-        //     {
-        //         LNode* const node_idx = *cit;
-        //         int local_idx = node_idx->getLocalPETScIndex();
-        //         force[local_idx*NDIM + mob_comp] = 1.0;
-        //     }
-        //     VecRestoreArray(d_F_data->getVec(), &force);
-        //     d_F_data->beginGhostUpdate();
-        //     d_F_data->endGhostUpdate();
-            
-        //     // spread force
-        //     spreadForce(d_f_idx,
-        //                 d_F_data,
-        //                 d_X_current_data,
-        //                 new_time);
-            
-        //     // solve fluid equations for velocity
-        //     d_ins_hier_integrator->integrateHierarchy(current_time,
-        //                                               new_time,
-        //                                               ins_cycle_num);
-            
-        //     //copy over eularian velocity to u_new
-        //     VariableDatabase<NDIM>* var_db =
-        //         VariableDatabase<NDIM>::getDatabase();
-        //     const int u_new_idx= var_db->mapVariableAndContextToIndex(
-        //         d_ins_hier_integrator->getVelocityVariable(),
-        //         d_ins_hier_integrator->getNewContext());
-        //     d_hier_velocity_data_ops->copyData(d_u_idx, u_new_idx);
-
-
-        //     // interpolate eularian velocity back to particles
-        //     interpolateVelocity(d_u_idx,
-        //                         d_U_data,
-        //                         d_X_current_data,
-        //                         current_time);
-
-        //     // May not be necessary.
-        //     d_U_data->beginGhostUpdate();
-        //     d_U_data->endGhostUpdate();            
-
-        //     // output velocity = column of mobility
-        //     PetscScalar *velocity;
-        //     VecGetArray(d_U_data->getVec(), &velocity);
-        //     PetscScalar *position;
-        //     VecGetArray(d_X_current_data->getVec(), &position);
-
-        //     // For the mobility estimate, we just print the mobility in
-        //     // one line in column major order.  
-        //     for (std::vector<LNode*>::const_iterator cit = local_nodes.begin();
-        //          cit != local_nodes.end();
-        //          ++cit)
-        //     {
-        //         LNode* const node_idx = *cit;
-        //         int local_idx = node_idx->getLocalPETScIndex();
-        //         for (int k = 0; k < NDIM; ++k)
-        //         {
-        //             out_mob_file << velocity[local_idx*NDIM + k] << ",";
-        //         }
-        //     }
-            
-        //     // keep particle where it is, and change the component along which force is added
-        //     ierr = VecCopy(d_X_current_data->getVec(),
-        //                    d_X_new_data->getVec());
-        //     IBTK_CHKERRQ(ierr);
-        //     mob_comp += 1;
-        //     if (mob_comp == NDIM)
-        //     {
-        //         out_mob_file << std::endl;
-        //     }
-        // }
         else
         {
             TBOX_ERROR("For overdamped dynamics, time_stepping_type must "
@@ -1073,10 +951,11 @@ IBBrownianBlobHierarchyIntegrator::integrateHierarchy(
     } // end if dynamics == "OVERDAMPED"
     else
     {
-        TBOX_ERROR("dynamics must be OVERDAMPED or RESOLVED."); 
+        TBOX_ERROR("dynamics must be OVERDAMPED."); 
     }
     return;
 }// integratehierarchy
+
 
 void
 IBBrownianBlobHierarchyIntegrator::postprocessIntegrateHierarchy(
@@ -1237,8 +1116,9 @@ IBBrownianBlobHierarchyIntegrator::interpolateVelocity(const int u_data_idx,
                                                        Pointer<LData> U_data,
                                                        Pointer<LData> X_data,
                                                        double time) {
-    //If walls -> fill ghost cells before interpolation
-    if(d_normalize_force_flag==0) fillGhostCells(u_data_idx, time); //Probably there is a better way to decide if the system is periodic or not
+    // If walls -> fill ghost cells before interpolation.
+    // Probably there is a better way to decide if the system is periodic.
+    if(d_normalize_force_flag==0) fillGhostCells(u_data_idx, time); 
 
     const int finest_level_num = d_hierarchy->getFinestLevelNumber();
     Pointer<IBMethod> p_ib_method_ops = d_ib_method_ops;

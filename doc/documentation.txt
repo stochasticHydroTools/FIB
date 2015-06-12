@@ -1,6 +1,6 @@
 This file lists the options used by the objects of the FIB code.
 These options are specified in input files, as done in the included
-examples.
+examples. 
 
 
 ########################################################
@@ -26,9 +26,9 @@ physical_rho - Density used only for momentum calculations in
 diagnostics when printed (see above).  Not used in
 the fluid solver.
 
-normalize_force - int - when positive, enforce sum(f) = 0 over the domain by
-normalizing (subtracting average).  Must be positive for fully periodic
-domains, and 0 for domains 
+normalize_force - int - when nonzero, enforce sum(f) = 0 over the domain by
+normalizing (subtracting average).  Must be nonzero for fully periodic
+domains, and 0 for domains with boundaries.
 
 regrid_alpha - double - How often to regrid based on how far particles
 move.  The code will regrid every time any particle moves more than
