@@ -9,9 +9,6 @@ SEED = 0                                 // RNG seed (0 for clock)
 kT  = 1.0                                // temperature
 MU  = 1.0                                // viscosity (shear)
 RHO = 0.0                                // density
-XI = 1.0                                 // particle diffusion
-SHEAR_RATE = 0
-SHEAR_ORIGIN = 80.0
 
 // ---------------------------------------------------------------------------
 

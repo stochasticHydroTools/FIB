@@ -565,18 +565,6 @@ main(
         }
         RNG::parallel_seed(seed);
 
-        // get particle diffusion xi
-        double xi = 1.0;
-        if (input_db->keyExists("XI"))
-        {
-            xi = input_db->getDouble("XI");
-            time_integrator->SetXi(xi);
-        }
-        else
-        {
-            TBOX_ERROR("Key data `XI' not found in input.");
-        }
-
         // get temperature kT
         double kT = 1.0;
         if (input_db->keyExists("kT"))
