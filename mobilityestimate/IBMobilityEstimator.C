@@ -67,11 +67,13 @@ IBMobilityEstimator::IBMobilityEstimator(
     d_mobility = new double[NDIM*NDIM];
     
     d_out_mob_file.open("./mobility.dat",std::ofstream::out);
+    d_out_mob_file.precision(10);
 }
 
 IBMobilityEstimator::~IBMobilityEstimator()
 {
     delete[] d_mobility;
+    d_out_mob_file.close();
     return;
 }// ~IBBrownianBlobHierarchyIntegrator
 
@@ -358,6 +360,7 @@ IBMobilityEstimator::integrateHierarchy(
         d_mobility[k] = 0.0;
     }
     for (int mob_comp = 0; mob_comp < NDIM; ++mob_comp) {
+        preprocessIntegrateHierarchy(0.0, 1.0, ins_cycle_num);
         // don't actually move the particle, just compute mobility
         // from an applied force in each direction.
         // Zero variables that we will add .
@@ -405,9 +408,13 @@ IBMobilityEstimator::integrateHierarchy(
             NormalizePointForces();
         }
         // Solve fluid equations for velocity, should be a stokes solve.
+        // Each iteration in the loop is like an simulation step
+        
         d_ins_hier_integrator->integrateHierarchy(0.0 /* current_time */,
                                                   1.0 /*new_time, unused*/,
                                                   ins_cycle_num);
+
+
         //copy over eularian velocity to u_new
         VariableDatabase<NDIM>* var_db =
             VariableDatabase<NDIM>::getDatabase();
@@ -444,14 +451,14 @@ IBMobilityEstimator::integrateHierarchy(
             for (int k = 0; k < NDIM; ++k)
             {
                 d_mobility[mob_comp*NDIM + k] = velocity[local_idx*NDIM + k];
-                d_out_mob_file << velocity[local_idx*NDIM + k] << ",";
+                d_out_mob_file << velocity[local_idx*NDIM + k] << "   ";
             }
             d_out_mob_file << std::endl;
         }
         // keep particle where it is, and change the component along which force is added
-        ierr = VecCopy(d_X_current_data->getVec(),
-                       d_X_new_data->getVec());
-        IBTK_CHKERRQ(ierr);
+        ierr = VecCopy(d_X_current_data->getVec(), d_X_new_data->getVec());IBTK_CHKERRQ(ierr);	
+	if(mob_comp < (NDIM-1))
+	  postprocessIntegrateHierarchy(0.0, 1.0, ins_cycle_num);
     }
     return;
 }

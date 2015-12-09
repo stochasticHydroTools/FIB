@@ -144,12 +144,11 @@ main(
         
         for (int k = 0; k < NDIM; ++k)
         {
-            gcw[k] = 2.0*regrid_alpha  + interaction;
+            gcw[k] = 4.0*regrid_alpha + interaction;
         }
         if(app_initializer->getComponentDatabase("IBMethod")->keyExists("delta_fcn"))
         {
-            spread_fcn =
-                app_initializer->getComponentDatabase("IBMethod")->getString("delta_fcn");
+            spread_fcn = app_initializer->getComponentDatabase("IBMethod")->getString("delta_fcn");
         }
 
         // Initialize l_data_manager
