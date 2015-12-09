@@ -399,7 +399,7 @@ IBMobilityEstimator::integrateHierarchy(
                                finest_level_num,
                                getProlongRefineSchedules(d_object_name+"::f"),
                                1.0 /* new time, unused */,
-                               /*F_needs_ghost_fill*/ false,
+                               /*F_needs_ghost_fill*/ true,
                                /*X_needs_ghost_fill*/ false);
 
         // normalize force, but not when we have walls
@@ -418,19 +418,21 @@ IBMobilityEstimator::integrateHierarchy(
         //copy over eularian velocity to u_new
         VariableDatabase<NDIM>* var_db =
             VariableDatabase<NDIM>::getDatabase();
-        const int u_new_idx= var_db->mapVariableAndContextToIndex(
-            d_ins_hier_integrator->getVelocityVariable(),
-            d_ins_hier_integrator->getNewContext());
+        const int u_new_idx= var_db->mapVariableAndContextToIndex(d_ins_hier_integrator->getVelocityVariable(),
+								  d_ins_hier_integrator->getNewContext());
         d_hier_velocity_data_ops->copyData(d_u_idx, u_new_idx);
+
+	// If walls -> fill ghost cells before interpolation.
+	// Probably there is a better way to decide if the system is periodic.
+	if(d_normalize_force_flag==0) fillGhostCells(d_u_idx, /*time*/ 0.0); 
+
         // interpolate eularian velocity back to particles
         l_data_manager->interp(d_u_idx,
                                d_U_data,
                                d_X_current_data,
                                finest_level_num,
-                               getCoarsenSchedules(
-                                   d_object_name+"::u::CONSERVATIVE_COARSEN"),
-                               getGhostfillRefineSchedules(
-                                   d_object_name+"::u"),
+                               getCoarsenSchedules(d_object_name+"::u::CONSERVATIVE_COARSEN"),
+                               getGhostfillRefineSchedules(d_object_name+"::u"),
                                0.0 /* current_time */);
         d_U_data->beginGhostUpdate();
         d_U_data->endGhostUpdate();            

@@ -305,8 +305,25 @@ main(
         ib_initializer.setNull();
         app_initializer.setNull();
 
+        if (dump_viz_data && uses_visit)
+        {
+            pout << "\n\nWriting visualization files...\n\n";
+            time_integrator->setupPlotData();
+            visit_data_writer->writePlotData(patch_hierarchy, 0, 0);
+            silo_data_writer->writePlotData(0, 0);
+        }
+
+
         double dt = time_integrator->getMaximumTimeStepSize();
         time_integrator->advanceHierarchy(dt);
+
+	if (1)
+	{
+	    pout << "\nWriting visualization files...\n\n";
+	    time_integrator->setupPlotData();
+	    visit_data_writer->writePlotData(patch_hierarchy, 1, 0);
+	    silo_data_writer->writePlotData(1, 0);
+	}
         
         // Cleanup Eulerian boundary condition specification objects (when
         // necessary).
